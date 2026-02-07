@@ -30,7 +30,7 @@ export default function BoardPage({
         </div>
       </div>
 
-      <div className="h-[calc(100%-5rem)]">
+      <div className="h-[calc(100%-2rem)]">
         <RequirementBoard workspaceId={workspaceId} />
       </div>
     </div>
