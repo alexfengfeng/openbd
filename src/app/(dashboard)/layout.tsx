@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { GlobalHotkeys } from '@/components/GlobalHotkeys';
 import { WorkspaceSwitcher } from '@/components/workspaces/WorkspaceSwitcher';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
+import { computeActiveHref, getWorkspaceIdFromPath } from './navUtils';
 import {
   LayoutDashboard,
   FolderOpen,
@@ -25,6 +26,9 @@ export default function DashboardLayout({
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const { currentWorkspace, workspaces } = useWorkspaceStore();
+
+  const workspaceIdInPath = getWorkspaceIdFromPath(pathname || '');
+  const activeWorkspaceId = currentWorkspace?.id ?? workspaceIdInPath;
 
   useEffect(() => {
     fetchUserData();
@@ -52,12 +56,14 @@ export default function DashboardLayout({
     { name: '工作空间', href: '/workspaces', icon: FolderOpen },
   ];
 
-  if (currentWorkspace) {
+  if (activeWorkspaceId) {
     navigation.push(
-      { name: '需求列表', href: `/workspaces/${currentWorkspace.id}/requirements`, icon: List },
-      { name: '需求看板', href: `/workspaces/${currentWorkspace.id}/board`, icon: Kanban }
+      { name: '需求列表', href: `/workspaces/${activeWorkspaceId}/requirements`, icon: List },
+      { name: '需求看板', href: `/workspaces/${activeWorkspaceId}/board`, icon: Kanban }
     );
   }
+
+  const activeHref = computeActiveHref(pathname || '', navigation);
 
   return (
     <div className="min-h-screen flex bg-ui-surface overflow-x-hidden">
@@ -83,7 +89,7 @@ export default function DashboardLayout({
 
         <nav className="p-4 space-y-2 flex-1 overflow-y-auto">
           {navigation.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+            const isActive = activeHref === item.href;
             return (
               <Link
                 key={item.name}

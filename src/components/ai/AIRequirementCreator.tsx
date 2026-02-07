@@ -129,7 +129,7 @@ export function AIRequirementCreator({ workspaceId, onCreate }: AIRequirementCre
               placeholder="例如：修复登录页面的 bug，这个问题很紧急，需要在明天之前完成 #bug"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              rows={4}
+              rows={20}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
                   handleParse();
