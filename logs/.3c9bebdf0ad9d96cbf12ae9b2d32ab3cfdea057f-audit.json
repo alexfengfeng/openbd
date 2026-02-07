@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "D:\\AI\\fast-json\\logs\\.3c9bebdf0ad9d96cbf12ae9b2d32ab3cfdea057f-audit.json",
+    "files": [
+        {
+            "date": 1770437867098,
+            "name": "D:\\AI\\fast-json\\logs\\mcp-puppeteer-2026-02-07.log",
+            "hash": "b59e7b73652958e66ed50e8bf07268f13343b32dac3fd24298663dcd13b1411f"
+        }
+    ],
+    "hashType": "sha256"
+}

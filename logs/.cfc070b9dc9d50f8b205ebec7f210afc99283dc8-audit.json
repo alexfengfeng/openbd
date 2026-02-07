@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "D:\\AI\\openbd\\logs\\.cfc070b9dc9d50f8b205ebec7f210afc99283dc8-audit.json",
+    "files": [
+        {
+            "date": 1770452992489,
+            "name": "D:\\AI\\openbd\\logs\\mcp-puppeteer-2026-02-07.log",
+            "hash": "336a203eacda9d9dd94a119dc540b52c125d48330ca334f37b44c21e8a730164"
+        }
+    ],
+    "hashType": "sha256"
+}
