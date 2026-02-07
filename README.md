@@ -8,9 +8,10 @@
 - 🏢 **多租户工作空间** - 每个用户可以创建多个独立工作空间
 - 📋 **需求管理** - 创建、编辑、删除需求，支持状态和优先级管理
 - 📊 **多种视图** - 列表视图和看板视图
-- 🤖 **AI 智能解析** - 自然语言描述需求，AI 自动解析结构化数据
+- 🤖 **AI 智能解析** - 自然语言描述需求，AI 自动解析结构化数据（支持 DeepSeek，可降级）
 - 🏷️ **标签系统** - 支持为需求添加标签分类
 - 👥 **成员管理** - 工作空间成员角色管理
+- ⌨️ **效率工具** - 快速编辑、命令面板（Ctrl/⌘K）、全局快捷键
 
 ## 技术栈
 
@@ -42,6 +43,12 @@ CREATE DATABASE fast_json CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 ```env
 DATABASE_URL="mysql://root:root@localhost:3306/fast_json"
+```
+
+可选：配置 DeepSeek（未配置时 AI 解析会自动降级到本地规则解析）
+
+```env
+DEEPSEEK_API_KEY="sk-..."
 ```
 
 ### 3. 初始化数据库
@@ -130,6 +137,7 @@ fast-json/
 | GET | `/api/workspaces/[id]` | 获取工作空间详情 |
 | PUT | `/api/workspaces/[id]` | 更新工作空间 |
 | DELETE | `/api/workspaces/[id]` | 删除工作空间 |
+| POST | `/api/workspaces/[id]/visit` | 记录最近访问时间 |
 
 ### 需求相关
 
@@ -141,12 +149,15 @@ fast-json/
 | PUT | `/api/requirements/[id]` | 更新需求 |
 | DELETE | `/api/requirements/[id]` | 删除需求 |
 | PATCH | `/api/requirements/[id]/status` | 更新需求状态 |
+| PATCH | `/api/requirements/reorder` | 批量更新状态与排序 |
+| POST | `/api/requirements/import` | 批量导入需求（JSON） |
 
 ### AI 相关
 
 | 方法 | 路径 | 描述 |
 |------|------|------|
 | POST | `/api/ai/parse-requirement` | AI 解析需求描述 |
+| POST | `/api/ai/suggest-title` | AI 建议标题（Quick Edit 内使用） |
 
 ### 标签相关
 
@@ -170,6 +181,12 @@ pnpm start
 # 代码检查
 pnpm lint
 
+# 单元/集成测试（含覆盖率门槛）
+pnpm test:coverage
+
+# E2E 测试（Playwright）
+pnpm test:e2e
+
 # 数据库相关
 pnpm db:generate    # 生成 Prisma Client
 pnpm db:push        # 推送 schema 到数据库
@@ -179,9 +196,7 @@ pnpm db:studio      # 打开 Prisma Studio
 
 ## 未来计划
 
-- [ ] 集成真实的 AI 服务（OpenAI API）
-- [ ] 实现需求拖拽功能
-- [ ] 添加需求评论功能
+- [ ] 需求评论与活动日志
 - [ ] 添加文件附件支持
 - [ ] 实现需求通知功能
 - [ ] 添加数据导出功能

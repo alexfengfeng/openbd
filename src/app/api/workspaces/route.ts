@@ -3,6 +3,41 @@ import { getServerSession } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { generateSlug } from '@/lib/utils';
 
+function isMissingColumnError(error: unknown, columnName: string) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as any).code === 'P2022' &&
+    String((error as any).message || '').includes(columnName)
+  );
+}
+
+const workspaceSelect = {
+  id: true,
+  name: true,
+  slug: true,
+  createdAt: true,
+  updatedAt: true,
+  owner: {
+    select: { id: true, username: true },
+  },
+  members: {
+    select: {
+      id: true,
+      role: true,
+      user: {
+        select: { id: true, username: true },
+      },
+    },
+  },
+  _count: {
+    select: {
+      requirements: true,
+      members: true,
+    },
+  },
+} as const;
+
 // GET /api/workspaces - 获取当前用户的工作空间列表
 export async function GET(request: NextRequest) {
   try {
@@ -11,36 +46,29 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const workspaces = await prisma.workspace.findMany({
-      where: {
-        members: {
-          some: {
-            userId: session.user.id,
-          },
+    const where = {
+      members: {
+        some: {
+          userId: session.user.id,
         },
       },
-      include: {
-        owner: {
-          select: { id: true, username: true },
-        },
-        members: {
-          include: {
-            user: {
-              select: { id: true, username: true },
-            },
-          },
-        },
-        _count: {
-          select: {
-            requirements: true,
-            members: true,
-          },
-        },
-      },
-      orderBy: {
-        updatedAt: 'desc',
-      },
-    });
+    } as const;
+
+    let workspaces;
+    try {
+      workspaces = await prisma.workspace.findMany({
+        where,
+        select: workspaceSelect,
+        orderBy: [{ lastVisitedAt: 'desc' }, { updatedAt: 'desc' }],
+      });
+    } catch (error) {
+      if (!isMissingColumnError(error, 'last_visited_at')) throw error;
+      workspaces = await prisma.workspace.findMany({
+        where,
+        select: workspaceSelect,
+        orderBy: [{ updatedAt: 'desc' }],
+      });
+    }
 
     return NextResponse.json({ workspaces });
   } catch (error) {
@@ -80,18 +108,7 @@ export async function POST(request: NextRequest) {
           },
         },
       },
-      include: {
-        owner: {
-          select: { id: true, username: true },
-        },
-        members: {
-          include: {
-            user: {
-              select: { id: true, username: true },
-            },
-          },
-        },
-      },
+      select: workspaceSelect,
     });
 
     return NextResponse.json({ workspace }, { status: 201 });

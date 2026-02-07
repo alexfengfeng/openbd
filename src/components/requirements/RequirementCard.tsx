@@ -1,25 +1,69 @@
 'use client';
 
+import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { getPriorityColor, getPriorityLabel, getStatusColor, getStatusLabel, formatDate } from '@/lib/utils';
-import { Clock, User } from 'lucide-react';
+import { Clock, Pencil, User } from 'lucide-react';
+import { QuickEditDialog } from './QuickEditDialog';
 
 interface RequirementCardProps {
   requirement: any;
   onClick?: () => void;
   showActions?: boolean;
+  onUpdated?: (requirement: any) => void;
 }
 
-export function RequirementCard({ requirement, onClick, showActions = true }: RequirementCardProps) {
+export function RequirementCard({ requirement, onClick, showActions = true, onUpdated }: RequirementCardProps) {
+  const [editOpen, setEditOpen] = useState(false);
+
+  const handleSave = async (data: { title: string; description: string; status: string; priority: string }) => {
+    const response = await fetch(`/api/requirements/${requirement.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update requirement');
+    }
+
+    const json = await response.json();
+    if (json?.requirement) onUpdated?.(json.requirement);
+  };
+
+  const handleAiTitle = async (description: string) => {
+    const response = await fetch('/api/ai/suggest-title', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description }),
+    });
+    if (!response.ok) return '';
+    const json = await response.json();
+    return typeof json?.title === 'string' ? json.title : '';
+  };
+
   return (
-    <Card
-      className={`cursor-pointer ${onClick ? 'cursor-pointer' : ''}`}
-      onClick={onClick}
-    >
+    <>
+      <Card className={`cursor-pointer ${onClick ? 'cursor-pointer' : ''}`} onClick={onClick}>
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold line-clamp-2">{requirement.title}</h3>
+          {showActions && (
+            <Button
+              variant="ghost"
+              size="icon"
+              data-quick-edit-button="true"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setEditOpen(true);
+              }}
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+          )}
         </div>
         {requirement.description && (
           <p className="text-sm text-muted-foreground line-clamp-2 mt-2">
@@ -72,5 +116,13 @@ export function RequirementCard({ requirement, onClick, showActions = true }: Re
         </div>
       </CardContent>
     </Card>
+      <QuickEditDialog
+        requirement={requirement}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onSave={handleSave}
+        onAiTitle={handleAiTitle}
+      />
+    </>
   );
 }

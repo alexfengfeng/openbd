@@ -34,6 +34,7 @@ model Workspace {
   name      String   @db.VarChar(255)
   slug      String   @unique @db.VarChar(100)
   ownerId   String   @map("owner_id")
+  lastVisitedAt DateTime? @map("last_visited_at")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -46,6 +47,7 @@ model Workspace {
   @@map("workspaces")
   @@index([ownerId])
   @@index([slug])
+  @@index([lastVisitedAt])
 }
 
 // 工作空间成员
@@ -81,6 +83,7 @@ model Requirement {
   description String?             @db.Text
   status      RequirementStatus   @default(BACKLOG)
   priority    RequirementPriority @default(MEDIUM)
+  order       Int                 @default(0) @map("sort_order")
   assigneeId  String?             @map("assignee_id")
   dueDate     DateTime?           @map("due_date")
   createdById String              @map("created_by_id")
@@ -98,6 +101,7 @@ model Requirement {
   @@index([status])
   @@index([priority])
   @@index([assigneeId])
+  @@index([workspaceId, status, order])
 }
 
 enum RequirementStatus {

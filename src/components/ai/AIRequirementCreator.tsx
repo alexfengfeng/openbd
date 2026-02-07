@@ -6,8 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
 import { getPriorityLabel, getStatusLabel } from '@/lib/utils';
+import { requirementTemplates } from '@/lib/templates/requirement-templates';
+import { VoiceInput } from '@/components/requirements/VoiceInput';
 
 interface AIRequirementCreatorProps {
   workspaceId: string;
@@ -20,6 +29,7 @@ export function AIRequirementCreator({ workspaceId, onCreate }: AIRequirementCre
   const [parsed, setParsed] = useState<any>(null);
   const [parsing, setParsing] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [templateId, setTemplateId] = useState<string>('NONE');
 
   const handleParse = async () => {
     if (!prompt.trim()) return;
@@ -92,6 +102,29 @@ export function AIRequirementCreator({ workspaceId, onCreate }: AIRequirementCre
       <CardContent className="space-y-4">
         {!parsed ? (
           <>
+            <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
+              <Select
+                value={templateId}
+                onValueChange={(value) => {
+                  setTemplateId(value);
+                  const tpl = requirementTemplates.find((t) => t.id === value);
+                  if (tpl) setPrompt(tpl.prompt);
+                }}
+              >
+                <SelectTrigger className="w-56">
+                  <SelectValue placeholder="选择模板..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="NONE">不使用模板</SelectItem>
+                  {requirementTemplates.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <VoiceInput onText={(text) => setPrompt(text)} />
+            </div>
             <Textarea
               placeholder="例如：修复登录页面的 bug，这个问题很紧急，需要在明天之前完成 #bug"
               value={prompt}

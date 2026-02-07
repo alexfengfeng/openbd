@@ -149,6 +149,9 @@ export function RequirementList({ workspaceId }: RequirementListProps) {
               key={requirement.id}
               requirement={requirement}
               onClick={() => router.push(`/workspaces/${workspaceId}/requirements/${requirement.id}`)}
+              onUpdated={(updated) => {
+                setRequirements((prev) => prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r)));
+              }}
             />
           ))}
         </div>

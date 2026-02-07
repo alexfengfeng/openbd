@@ -118,6 +118,7 @@ JWT_SECRET="至少32字符的随机密钥"
 4. **JWT 操作**: 使用 `signToken()` 和 `verifyAuth()` 工具函数
 5. **用户会话**: 在服务端组件中使用 `getServerSession()` 获取当前用户
 6. **API 路由**: 从请求头获取 `x-user-id` 而非从 cookie（中间件已注入）
+7. **Prisma Client 生成**: 若出现 `@prisma/client did not initialize yet`，先执行 `pnpm db:generate`（建议使用 `pnpm dev` 启动）
 
 ## 测试账号
 

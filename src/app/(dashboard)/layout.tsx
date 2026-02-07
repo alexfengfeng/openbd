@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { GlobalHotkeys } from '@/components/GlobalHotkeys';
+import { WorkspaceSwitcher } from '@/components/workspaces/WorkspaceSwitcher';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
 import {
   LayoutDashboard,
   FolderOpen,
@@ -20,13 +23,11 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [currentWorkspace, setCurrentWorkspace] = useState<any>(null);
-  const [workspaces, setWorkspaces] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
+  const { currentWorkspace, workspaces } = useWorkspaceStore();
 
   useEffect(() => {
     fetchUserData();
-    fetchWorkspaces();
   }, []);
 
   const fetchUserData = async () => {
@@ -38,21 +39,6 @@ export default function DashboardLayout({
       }
     } catch (error) {
       console.error('Error fetching user:', error);
-    }
-  };
-
-  const fetchWorkspaces = async () => {
-    try {
-      const response = await fetch('/api/workspaces');
-      if (response.ok) {
-        const data = await response.json();
-        setWorkspaces(data.workspaces);
-        if (data.workspaces.length > 0) {
-          setCurrentWorkspace(data.workspaces[0]);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching workspaces:', error);
     }
   };
 
@@ -75,19 +61,15 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen flex bg-ui-surface overflow-x-hidden">
+      <GlobalHotkeys />
       <aside className="w-[250px] bg-ui-charcoal text-ui-on-dark flex flex-col shrink-0">
         <div className="p-4 border-b border-ui-on-dark/10">
           <Link href="/dashboard" className="block text-[15px] font-semibold tracking-tight">
             需求管理
           </Link>
-          {currentWorkspace && (
-            <div className="mt-4 flex items-center gap-2">
-              <FolderOpen className="h-4 w-4 text-ui-on-dark/65" />
-              <span className="text-sm text-ui-on-dark/65 truncate">
-                {currentWorkspace.name}
-              </span>
-            </div>
-          )}
+          <div className="mt-4">
+            <WorkspaceSwitcher />
+          </div>
           <div className="mt-4">
             <Link
               href="/workspaces/new"
