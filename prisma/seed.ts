@@ -120,6 +120,81 @@ async function main() {
   ]);
   console.log('创建标签:', tags.length, '个');
 
+  // 创建 AI 标签模板
+  const tagTemplates = await Promise.all([
+    prisma.tagTemplate.upsert({
+      where: { id: 'tpl-bug' },
+      update: {},
+      create: {
+        id: 'tpl-bug',
+        workspaceId: workspace.id,
+        name: 'Bug 标签识别',
+        prompt: '分析以下需求描述，判断是否与软件缺陷、错误修复相关。\n\n判断标准：\n1. 是否涉及修复已知问题\n2. 是否解决错误行为\n3. 是否修复崩溃或异常\n\n如果符合以上标准，建议添加 #Bug 标签。',
+      },
+    }),
+    prisma.tagTemplate.upsert({
+      where: { id: 'tpl-feature' },
+      update: {},
+      create: {
+        id: 'tpl-feature',
+        workspaceId: workspace.id,
+        name: '新功能识别',
+        prompt: '分析以下需求描述，判断是否属于新功能开发。\n\n判断标准：\n1. 是否引入全新的功能模块\n2. 是否增加新的用户能力\n3. 是否扩展产品功能边界\n\n如果符合以上标准，建议添加 #新功能 标签。',
+      },
+    }),
+    prisma.tagTemplate.upsert({
+      where: { id: 'tpl-improvement' },
+      update: {},
+      create: {
+        id: 'tpl-improvement',
+        workspaceId: workspace.id,
+        name: '优化改进识别',
+        prompt: '分析以下需求描述，判断是否属于对现有功能的优化改进。\n\n判断标准：\n1. 是否改进现有功能体验\n2. 是否提升性能或效率\n3. 是否优化用户交互流程\n\n如果符合以上标准，建议添加 #优化 标签。',
+      },
+    }),
+    prisma.tagTemplate.upsert({
+      where: { id: 'tpl-urgent' },
+      update: {},
+      create: {
+        id: 'tpl-urgent',
+        workspaceId: workspace.id,
+        name: '紧急程度识别',
+        prompt: '分析以下需求描述，判断其紧急程度。\n\n判断标准：\n1. 是否影响核心功能使用\n2. 是否涉及数据安全问题\n3. 是否有明确的时间截止要求\n\n如果符合以上标准，建议添加 #紧急 标签。',
+      },
+    }),
+    prisma.tagTemplate.upsert({
+      where: { id: 'tpl-security' },
+      update: {},
+      create: {
+        id: 'tpl-security',
+        workspaceId: workspace.id,
+        name: '安全性识别',
+        prompt: '分析以下需求描述，判断是否与系统安全相关。\n\n判断标准：\n1. 是否涉及权限控制\n2. 是否关于数据加密\n3. 是否处理安全漏洞\n\n如果符合以上标准，建议添加 #安全 标签。',
+      },
+    }),
+    prisma.tagTemplate.upsert({
+      where: { id: 'tpl-ui' },
+      update: {},
+      create: {
+        id: 'tpl-ui',
+        workspaceId: workspace.id,
+        name: 'UI/UX 识别',
+        prompt: '分析以下需求描述，判断是否与界面设计和用户体验相关。\n\n判断标准：\n1. 是否涉及页面布局\n2. 是否关于交互设计\n3. 是否优化视觉体验\n\n如果符合以上标准，建议添加 #设计 标签。',
+      },
+    }),
+    prisma.tagTemplate.upsert({
+      where: { id: 'tpl-docs' },
+      update: {},
+      create: {
+        id: 'tpl-docs',
+        workspaceId: workspace.id,
+        name: '文档相关识别',
+        prompt: '分析以下需求描述，判断是否与文档相关。\n\n判断标准：\n1. 是否涉及帮助文档\n2. 是否关于 API 文档\n3. 是否需要用户手册更新\n\n如果符合以上标准，建议添加 #文档 标签。',
+      },
+    }),
+  ]);
+  console.log('创建标签模板:', tagTemplates.length, '个');
+
   // 创建示例需求
   const requirements = [
     {
@@ -378,6 +453,51 @@ async function main() {
     }
   }
   console.log('创建示例需求:', requirements2.length, '个');
+
+  // 创建 AI 标签模板
+  const tagTemplates2 = await Promise.all([
+    prisma.tagTemplate.upsert({
+      where: { id: 'tpl-p2-bug' },
+      update: {},
+      create: {
+        id: 'tpl-p2-bug',
+        workspaceId: workspace2.id,
+        name: 'Bug 标签识别',
+        prompt: '分析以下需求描述，判断是否与软件缺陷、错误修复相关。\n\n判断标准：\n1. 是否涉及修复已知问题\n2. 是否解决错误行为\n3. 是否修复崩溃或异常\n\n如果符合以上标准，建议添加 #Bug 标签。',
+      },
+    }),
+    prisma.tagTemplate.upsert({
+      where: { id: 'tpl-p2-feature' },
+      update: {},
+      create: {
+        id: 'tpl-p2-feature',
+        workspaceId: workspace2.id,
+        name: '新功能识别',
+        prompt: '分析以下需求描述，判断是否属于新功能开发。\n\n判断标准：\n1. 是否引入全新的功能模块\n2. 是否增加新的用户能力\n3. 是否扩展产品功能边界\n\n如果符合以上标准，建议添加 #新功能 标签。',
+      },
+    }),
+    prisma.tagTemplate.upsert({
+      where: { id: 'tpl-p2-design' },
+      update: {},
+      create: {
+        id: 'tpl-p2-design',
+        workspaceId: workspace2.id,
+        name: '设计相关识别',
+        prompt: '分析以下需求描述，判断是否与界面设计、用户体验相关。\n\n判断标准：\n1. 是否涉及 UI/UX 改进\n2. 是否关于视觉设计调整\n3. 是否优化用户交互体验\n\n如果符合以上标准，建议添加 #设计 标签。',
+      },
+    }),
+    prisma.tagTemplate.upsert({
+      where: { id: 'tpl-p2-performance' },
+      update: {},
+      create: {
+        id: 'tpl-p2-performance',
+        workspaceId: workspace2.id,
+        name: '性能优化识别',
+        prompt: '分析以下需求描述，判断是否与系统性能相关。\n\n判断标准：\n1. 是否涉及响应速度优化\n2. 是否关于资源使用效率\n3. 是否处理性能瓶颈问题\n\n如果符合以上标准，建议添加 #性能 标签。',
+      },
+    }),
+  ]);
+  console.log('创建标签模板:', tagTemplates2.length, '个');
 
   console.log('种子数据完成！');
 }

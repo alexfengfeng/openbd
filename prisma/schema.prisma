@@ -44,6 +44,7 @@ model Workspace {
   members     WorkspaceMember[]
   requirements Requirement[]
   tags        Tag[]
+  tagTemplates TagTemplate[]
 
   @@map("workspaces")
   @@index([ownerId])
@@ -153,4 +154,20 @@ model RequirementTag {
 
   @@id([requirementId, tagId])
   @@map("requirement_tags")
+}
+
+// AI 标签模板模型
+model TagTemplate {
+  id         String   @id @default(uuid())              // 模板ID
+  workspaceId String   @map("workspace_id") @db.VarChar(36)  // 所属工作空间ID
+  name       String   @db.VarChar(100)                  // 模板名称
+  prompt     String   @db.Text                          // AI提示词模板
+  createdAt  DateTime @default(now()) @map("created_at")// 创建时间
+  updatedAt  DateTime @updatedAt @map("updated_at")    // 更新时间
+
+  // 关系
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("tag_templates")
+  @@index([workspaceId])
 }

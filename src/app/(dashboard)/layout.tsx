@@ -15,6 +15,7 @@ import {
   Plus,
   List,
   Kanban,
+  Settings,
 } from 'lucide-react';
 
 export default function DashboardLayout({
@@ -59,7 +60,8 @@ export default function DashboardLayout({
   if (activeWorkspaceId) {
     navigation.push(
       { name: '需求列表', href: `/workspaces/${activeWorkspaceId}/requirements`, icon: List },
-      { name: '需求看板', href: `/workspaces/${activeWorkspaceId}/board`, icon: Kanban }
+      { name: '需求看板', href: `/workspaces/${activeWorkspaceId}/board`, icon: Kanban },
+      { name: '标签模板', href: `/workspaces/${activeWorkspaceId}/settings/tag-templates`, icon: Settings }
     );
   }
 
