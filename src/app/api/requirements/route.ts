@@ -12,6 +12,15 @@ function isMissingColumnError(error: unknown, columnName: string) {
   );
 }
 
+function isMissingTableError(error: unknown, tableName: string) {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as any).code === 'P2021' &&
+    String((error as any).message || '').includes(tableName)
+  );
+}
+
 const requirementSelectWithoutOrder = {
   id: true,
   workspaceId: true,
@@ -36,6 +45,45 @@ const requirementSelectWithoutOrder = {
   },
 } as const;
 
+const requirementSelectNoTags = {
+  id: true,
+  workspaceId: true,
+  title: true,
+  description: true,
+  priority: true,
+  status: true,
+  order: true,
+  assigneeId: true,
+  dueDate: true,
+  createdAt: true,
+  updatedAt: true,
+  assignee: {
+    select: { id: true, username: true },
+  },
+  createdBy: {
+    select: { id: true, username: true },
+  },
+} as const;
+
+const requirementSelectNoTagsWithoutOrder = {
+  id: true,
+  workspaceId: true,
+  title: true,
+  description: true,
+  priority: true,
+  status: true,
+  assigneeId: true,
+  dueDate: true,
+  createdAt: true,
+  updatedAt: true,
+  assignee: {
+    select: { id: true, username: true },
+  },
+  createdBy: {
+    select: { id: true, username: true },
+  },
+} as const;
+
 // 创建需求验证 schema
 const CreateRequirementSchema = z.object({
   workspaceId: z.string().uuid(),
@@ -48,7 +96,7 @@ const CreateRequirementSchema = z.object({
   dueDate: z.string().optional(),
 });
 
-// GET /api/requirements?workspaceId=xxx&status=xxx&priority=xxx&assigneeId=xxx
+// GET /api/requirements?workspaceId=xxx&status=xxx&priority=xxx&assigneeId=xxx&page=1&pageSize=9
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession();
@@ -62,6 +110,9 @@ export async function GET(request: NextRequest) {
     const priority = searchParams.get('priority');
     const assigneeId = searchParams.get('assigneeId');
     const view = searchParams.get('view');
+    const page = parseInt(searchParams.get('page') || '1', 10);
+    // 看板视图获取所有需求，不分页
+    const pageSize = view === 'board' ? 10000 : parseInt(searchParams.get('pageSize') || '9', 10);
 
     if (!workspaceId) {
       return NextResponse.json({ error: 'workspaceId is required' }, { status: 400 });
@@ -85,6 +136,10 @@ export async function GET(request: NextRequest) {
     if (priority) where.priority = priority;
     if (assigneeId) where.assigneeId = assigneeId;
 
+    // 计算总数
+    const total = await prisma.requirement.count({ where });
+    const totalPages = Math.ceil(total / pageSize);
+
     let requirements: any[] = [];
     let degraded = false;
     try {
@@ -107,28 +162,46 @@ export async function GET(request: NextRequest) {
           view === 'board'
             ? [{ status: 'asc' }, { order: 'asc' }, { updatedAt: 'desc' }]
             : [{ priority: 'desc' }, { createdAt: 'desc' }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
       });
     } catch (error) {
-      if (!isMissingColumnError(error, 'sort_order')) throw error;
+      const missingOrder = isMissingColumnError(error, 'sort_order');
+      const missingTags =
+        isMissingTableError(error, 'requirement_tags') ||
+        isMissingTableError(error, 'tags');
+      if (!missingOrder && !missingTags) throw error;
       degraded = true;
       requirements = await prisma.requirement.findMany({
         where,
-        select: requirementSelectWithoutOrder,
+        select: missingTags
+          ? missingOrder
+            ? requirementSelectNoTagsWithoutOrder
+            : requirementSelectNoTags
+          : requirementSelectWithoutOrder,
         orderBy:
           view === 'board'
-            ? [{ status: 'asc' }, { updatedAt: 'desc' }]
+            ? missingOrder
+              ? [{ status: 'asc' }, { updatedAt: 'desc' }]
+              : [{ status: 'asc' }, { order: 'asc' }, { updatedAt: 'desc' }]
             : [{ priority: 'desc' }, { createdAt: 'desc' }],
+        skip: (page - 1) * pageSize,
+        take: pageSize,
       });
     }
 
     // 转换数据格式
     const formatted = requirements.map((req) => ({
       ...req,
-      tags: req.tags.map((rt: any) => rt.tag),
+      tags: Array.isArray(req.tags) ? req.tags.map((rt: any) => rt.tag) : [],
       order: typeof req.order === 'number' ? req.order : 0,
     }));
 
-    return NextResponse.json(degraded ? { requirements: formatted, degraded } : { requirements: formatted });
+    return NextResponse.json(
+      degraded
+        ? { requirements: formatted, degraded, pagination: { page, pageSize, total, totalPages } }
+        : { requirements: formatted, pagination: { page, pageSize, total, totalPages } }
+    );
   } catch (error) {
     console.error('Error fetching requirements:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -206,17 +279,25 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (error) {
-      if (!isMissingColumnError(error, 'sort_order')) throw error;
+      const missingOrder = isMissingColumnError(error, 'sort_order');
+      const missingTags =
+        isMissingTableError(error, 'requirement_tags') ||
+        isMissingTableError(error, 'tags');
+      if (!missingOrder && !missingTags) throw error;
       degraded = true;
       requirement = await prisma.requirement.create({
         data,
-        select: requirementSelectWithoutOrder,
+        select: missingTags
+          ? missingOrder
+            ? requirementSelectNoTagsWithoutOrder
+            : requirementSelectNoTags
+          : requirementSelectWithoutOrder,
       });
     }
 
     const formatted = {
       ...requirement,
-      tags: requirement.tags.map((rt: any) => rt.tag),
+      tags: Array.isArray(requirement.tags) ? requirement.tags.map((rt: any) => rt.tag) : [],
       order: typeof requirement.order === 'number' ? requirement.order : 0,
     };
 

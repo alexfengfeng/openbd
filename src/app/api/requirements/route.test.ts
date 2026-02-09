@@ -11,6 +11,7 @@ const prismaMock = vi.hoisted(() => ({
   requirement: {
     findMany: vi.fn(),
     create: vi.fn(),
+    count: vi.fn(),
   },
 }))
 
@@ -26,6 +27,8 @@ describe("/api/requirements", () => {
     prismaMock.workspaceMember.findFirst.mockReset()
     prismaMock.requirement.findMany.mockReset()
     prismaMock.requirement.create.mockReset()
+    prismaMock.requirement.count.mockReset()
+    prismaMock.requirement.count.mockResolvedValue(0)
     ;(getServerSession as any).mockResolvedValue({ user: { id: "u1", username: "tester" } })
   })
 
@@ -75,6 +78,39 @@ describe("/api/requirements", () => {
     expect(json.degraded).toBe(true)
     expect(json.requirements[0].order).toBe(0)
     expect(json.requirements[0].tags[0].name).toBe("bug")
+  })
+
+  it("degrades when requirement_tags table is missing", async () => {
+    prismaMock.workspaceMember.findFirst.mockResolvedValueOnce({ id: "m1" })
+    prismaMock.requirement.findMany
+      .mockRejectedValueOnce({ code: "P2021", message: "The table `fast_json.requirement_tags` does not exist" })
+      .mockResolvedValueOnce([
+        {
+          id: "r1",
+          workspaceId: "w1",
+          title: "t",
+          description: null,
+          priority: "MEDIUM",
+          status: "BACKLOG",
+          order: 3,
+          assigneeId: null,
+          dueDate: null,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          assignee: null,
+          createdBy: { id: "u1", username: "tester" },
+        },
+      ])
+
+    const req = new Request(
+      "http://localhost/api/requirements?workspaceId=00000000-0000-0000-0000-000000000000&view=board"
+    )
+    const res = await GET(req as any)
+    expect(res.status).toBe(200)
+    const json = await res.json()
+    expect(json.degraded).toBe(true)
+    expect(json.requirements[0].tags).toEqual([])
+    expect(json.requirements[0].order).toBe(3)
   })
 
   it("returns 400 when workspaceId missing", async () => {
@@ -169,6 +205,41 @@ describe("/api/requirements", () => {
     const json = await res.json()
     expect(json.degraded).toBe(true)
     expect(json.requirement.order).toBe(0)
+  })
+
+  it("degrades on create when requirement_tags table is missing", async () => {
+    prismaMock.workspaceMember.findFirst.mockResolvedValueOnce({ id: "m1" })
+    prismaMock.requirement.create
+      .mockRejectedValueOnce({ code: "P2021", message: "The table `fast_json.requirement_tags` does not exist" })
+      .mockResolvedValueOnce({
+        id: "r3",
+        workspaceId: "w1",
+        title: "t3",
+        description: null,
+        priority: "MEDIUM",
+        status: "BACKLOG",
+        order: 0,
+        assigneeId: null,
+        dueDate: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        assignee: null,
+        createdBy: { id: "u1", username: "tester" },
+      })
+
+    const req = new Request("http://localhost/api/requirements", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        workspaceId: "00000000-0000-0000-0000-000000000000",
+        title: "t3",
+      }),
+    })
+    const res = await POST(req as any)
+    expect(res.status).toBe(201)
+    const json = await res.json()
+    expect(json.degraded).toBe(true)
+    expect(json.requirement.tags).toEqual([])
   })
 })
 

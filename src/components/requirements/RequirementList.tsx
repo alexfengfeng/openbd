@@ -13,11 +13,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface RequirementListProps {
   workspaceId: string;
 }
+
+const PAGE_SIZE = 9;
 
 export function RequirementList({ workspaceId }: RequirementListProps) {
   const router = useRouter();
@@ -26,14 +28,21 @@ export function RequirementList({ workspaceId }: RequirementListProps) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [priorityFilter, setPriorityFilter] = useState<string>('');
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 0, page, pageSize: PAGE_SIZE });
 
   useEffect(() => {
     fetchRequirements();
-  }, [workspaceId, statusFilter, priorityFilter]);
+  }, [workspaceId, statusFilter, priorityFilter, page]);
 
   const fetchRequirements = async () => {
     try {
-      const params = new URLSearchParams({ workspaceId });
+      setLoading(true);
+      const params = new URLSearchParams({
+        workspaceId,
+        page: page.toString(),
+        pageSize: PAGE_SIZE.toString(),
+      });
       if (statusFilter) params.append('status', statusFilter);
       if (priorityFilter) params.append('priority', priorityFilter);
 
@@ -41,6 +50,7 @@ export function RequirementList({ workspaceId }: RequirementListProps) {
       if (response.ok) {
         const data = await response.json();
         setRequirements(data.requirements);
+        setPagination(data.pagination);
       }
     } catch (error) {
       console.error('Error fetching requirements:', error);
@@ -49,18 +59,21 @@ export function RequirementList({ workspaceId }: RequirementListProps) {
     }
   };
 
+  // 当筛选条件改变时，重置到第一页
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value === 'ALL' ? '' : value);
+    setPage(1);
+  };
+
+  const handlePriorityFilterChange = (value: string) => {
+    setPriorityFilter(value === 'ALL' ? '' : value);
+    setPage(1);
+  };
+
   const filteredRequirements = requirements.filter((req) =>
     req.title.toLowerCase().includes(search.toLowerCase()) ||
     (req.description && req.description.toLowerCase().includes(search.toLowerCase()))
   );
-
-  const stats = {
-    total: requirements.length,
-    backlog: requirements.filter((r) => r.status === 'BACKLOG').length,
-    todo: requirements.filter((r) => r.status === 'TODO').length,
-    inProgress: requirements.filter((r) => r.status === 'IN_PROGRESS').length,
-    done: requirements.filter((r) => r.status === 'DONE').length,
-  };
 
   return (
     <div className="space-y-4">
@@ -78,7 +91,7 @@ export function RequirementList({ workspaceId }: RequirementListProps) {
           </div>
           <Select
             value={statusFilter || 'ALL'}
-            onValueChange={(value) => setStatusFilter(value === 'ALL' ? '' : value)}
+            onValueChange={handleStatusFilterChange}
           >
             <SelectTrigger className="w-32">
               <SelectValue placeholder="状态" />
@@ -93,7 +106,7 @@ export function RequirementList({ workspaceId }: RequirementListProps) {
           </Select>
           <Select
             value={priorityFilter || 'ALL'}
-            onValueChange={(value) => setPriorityFilter(value === 'ALL' ? '' : value)}
+            onValueChange={handlePriorityFilterChange}
           >
             <SelectTrigger className="w-32">
               <SelectValue placeholder="优先级" />
@@ -114,23 +127,10 @@ export function RequirementList({ workspaceId }: RequirementListProps) {
         </Button>
       </div>
 
-      {/* 统计 */}
-      <div className="flex gap-2 flex-wrap">
-        <Badge variant="outline" className="cursor-pointer hover:bg-gray-100" onClick={() => setStatusFilter('')}>
-          全部 ({stats.total})
-        </Badge>
-        <Badge variant="outline" className="cursor-pointer hover:bg-gray-100" onClick={() => setStatusFilter('BACKLOG')}>
-          待办 ({stats.backlog})
-        </Badge>
-        <Badge variant="outline" className="cursor-pointer hover:bg-gray-100" onClick={() => setStatusFilter('TODO')}>
-          待处理 ({stats.todo})
-        </Badge>
-        <Badge variant="outline" className="cursor-pointer hover:bg-gray-100" onClick={() => setStatusFilter('IN_PROGRESS')}>
-          进行中 ({stats.inProgress})
-        </Badge>
-        <Badge variant="outline" className="cursor-pointer hover:bg-gray-100" onClick={() => setStatusFilter('DONE')}>
-          已完成 ({stats.done})
-        </Badge>
+      {/* 统计信息 */}
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <span>共 {pagination.total} 个需求</span>
+        <span>第 {page} / {pagination.totalPages} 页</span>
       </div>
 
       {/* 需求列表 */}
@@ -143,18 +143,70 @@ export function RequirementList({ workspaceId }: RequirementListProps) {
           {search || statusFilter || priorityFilter ? '没有找到匹配的需求' : '暂无需求，点击上方按钮创建'}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredRequirements.map((requirement) => (
-            <RequirementCard
-              key={requirement.id}
-              requirement={requirement}
-              onClick={() => router.push(`/workspaces/${workspaceId}/requirements/${requirement.id}`)}
-              onUpdated={(updated) => {
-                setRequirements((prev) => prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r)));
-              }}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {filteredRequirements.map((requirement) => (
+              <RequirementCard
+                key={requirement.id}
+                requirement={requirement}
+                onClick={() => router.push(`/workspaces/${workspaceId}/requirements/${requirement.id}`)}
+                onUpdated={(updated) => {
+                  setRequirements((prev) => prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r)));
+                }}
+              />
+            ))}
+          </div>
+
+          {/* 分页控件 */}
+          {pagination.totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                上一页
+              </Button>
+              <div className="flex gap-1">
+                {Array.from({ length: Math.min(pagination.totalPages, 5) }, (_, i) => {
+                  let pageNum;
+                  if (pagination.totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (page <= 3) {
+                    pageNum = i + 1;
+                  } else if (page >= pagination.totalPages - 2) {
+                    pageNum = pagination.totalPages - 4 + i;
+                  } else {
+                    pageNum = page - 2 + i;
+                  }
+
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={page === pageNum ? 'default' : 'outline'}
+                      size="sm"
+                      className="w-9 h-9"
+                      onClick={() => setPage(pageNum)}
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))}
+                disabled={page === pagination.totalPages}
+              >
+                下一页
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

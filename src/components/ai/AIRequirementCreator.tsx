@@ -29,11 +29,13 @@ export function AIRequirementCreator({ workspaceId, onCreate }: AIRequirementCre
   const [parsed, setParsed] = useState<any>(null);
   const [parsing, setParsing] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [templateId, setTemplateId] = useState<string>('NONE');
 
   const handleParse = async () => {
     if (!prompt.trim()) return;
 
+    setError(null);
     setParsing(true);
     try {
       const response = await fetch('/api/ai/parse-requirement', {
@@ -45,9 +47,13 @@ export function AIRequirementCreator({ workspaceId, onCreate }: AIRequirementCre
       if (response.ok) {
         const data = await response.json();
         setParsed(data.parsed);
+        return;
       }
+      const data = await response.json().catch(() => null);
+      setError(data?.error || 'AI 解析失败');
     } catch (error) {
       console.error('Error parsing requirement:', error);
+      setError('AI 解析失败');
     } finally {
       setParsing(false);
     }
@@ -56,6 +62,7 @@ export function AIRequirementCreator({ workspaceId, onCreate }: AIRequirementCre
   const handleCreate = async () => {
     if (!parsed) return;
 
+    setError(null);
     setCreating(true);
     try {
       const response = await fetch('/api/requirements', {
@@ -76,9 +83,13 @@ export function AIRequirementCreator({ workspaceId, onCreate }: AIRequirementCre
         setPrompt('');
         setParsed(null);
         router.refresh();
+        return;
       }
+      const data = await response.json().catch(() => null);
+      setError(data?.error || '创建失败');
     } catch (error) {
       console.error('Error creating requirement:', error);
+      setError('创建失败');
     } finally {
       setCreating(false);
     }
@@ -100,6 +111,11 @@ export function AIRequirementCreator({ workspaceId, onCreate }: AIRequirementCre
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
+        {error ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </div>
+        ) : null}
         {!parsed ? (
           <>
             <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">

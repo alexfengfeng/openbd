@@ -58,6 +58,41 @@ describe("AIRequirementCreator", () => {
     })
   })
 
+  it("shows error when create fails", async () => {
+    const fetchMock = vi.fn(async (url: string, init?: any) => {
+      if (url === "/api/ai/parse-requirement") {
+        return {
+          ok: true,
+          json: async () => ({
+            parsed: {
+              title: "标题",
+              description: "描述",
+              priority: "MEDIUM",
+              status: "BACKLOG",
+              tags: [],
+            },
+          }),
+        }
+      }
+      if (url === "/api/requirements" && init?.method === "POST") {
+        return { ok: false, json: async () => ({ error: "Internal server error" }) }
+      }
+      return { ok: false, json: async () => ({}) }
+    })
+    ;(globalThis as any).fetch = fetchMock
+
+    render(<AIRequirementCreator workspaceId="w1" />)
+    fireEvent.change(screen.getByPlaceholderText(/例如：修复登录页面/), { target: { value: "x" } })
+    fireEvent.click(screen.getByRole("button", { name: "AI 解析" }))
+    await waitFor(() => {
+      expect(screen.getByText("确认创建")).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByText("确认创建"))
+    await waitFor(() => {
+      expect(screen.getByText("Internal server error")).toBeInTheDocument()
+    })
+  })
+
   it("applies template to prompt", async () => {
     render(<AIRequirementCreator workspaceId="w1" />)
     fireEvent.click(screen.getByRole("combobox"))

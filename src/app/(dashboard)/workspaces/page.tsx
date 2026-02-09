@@ -5,12 +5,21 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FolderOpen, Plus, ArrowRight } from 'lucide-react';
+import { FolderOpen, Plus, ArrowRight, MoreHorizontal, Pencil } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { WorkspaceEditDialog } from '@/components/workspaces/WorkspaceEditDialog';
 
 export default function WorkspacesPage() {
   const router = useRouter();
   const [workspaces, setWorkspaces] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingWorkspace, setEditingWorkspace] = useState<{ id: string; name: string } | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchWorkspaces();
@@ -28,6 +37,16 @@ export default function WorkspacesPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditWorkspace = (workspace: { id: string; name: string }) => {
+    setEditingWorkspace(workspace);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    fetchWorkspaces();
+    router.refresh();
   };
 
   if (loading) {
@@ -62,24 +81,64 @@ export default function WorkspacesPage() {
           {workspaces.map((workspace) => (
             <Card
               key={workspace.id}
-              className="hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => router.push(`/workspaces/${workspace.id}/requirements`)}
+              className="hover:shadow-md transition-shadow group"
             >
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                  <div
+                    className="min-w-0 flex-1"
+                    onClick={() => router.push(`/workspaces/${workspace.id}/requirements`)}
+                  >
                     <CardTitle className="truncate">{workspace.name}</CardTitle>
                     <CardDescription>
                       {workspace._count?.requirements ?? 0} 个需求 · {workspace._count?.members ?? 0} 位成员
                     </CardDescription>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-muted-foreground mt-1 flex-shrink-0" />
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => router.push(`/workspaces/${workspace.id}/requirements`)}
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditWorkspace({ id: workspace.id, name: workspace.name });
+                          }}
+                        >
+                          <Pencil className="h-4 w-4 mr-2" />
+                          编辑
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </CardHeader>
             </Card>
           ))}
         </div>
       )}
+
+      <WorkspaceEditDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        workspace={editingWorkspace}
+        onSuccess={handleEditSuccess}
+      />
     </div>
   );
 }

@@ -11,12 +11,12 @@ datasource db {
 
 // 用户模型
 model User {
-  id           String   @id @default(uuid())
-  username     String   @unique @db.VarChar(100)
-  passwordHash String   @map("password_hash") @db.VarChar(255)
-  email        String?  @unique @db.VarChar(255)
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(uuid())          // 用户ID
+  username     String   @unique @db.VarChar(100)     // 用户名
+  passwordHash String   @map("password_hash") @db.VarChar(255)  // 密码哈希
+  email        String?  @unique @db.VarChar(190)     // 邮箱
+  createdAt    DateTime @default(now()) @map("created_at")  // 创建时间
+  updatedAt    DateTime @updatedAt @map("updated_at")// 更新时间
 
   // 关系
   ownedWorkspaces       Workspace[]        @relation("WorkspaceOwner")
@@ -30,13 +30,13 @@ model User {
 
 // 工作空间模型
 model Workspace {
-  id        String   @id @default(uuid())
-  name      String   @db.VarChar(255)
-  slug      String   @unique @db.VarChar(100)
-  ownerId   String   @map("owner_id")
-  lastVisitedAt DateTime? @map("last_visited_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id        String   @id @default(uuid())              // 工作空间ID
+  name      String   @db.VarChar(255)                  // 工作空间名称
+  slug      String   @unique @db.VarChar(100)          // URL友好标识符
+  ownerId   String   @map("owner_id") @db.VarChar(36)  // 所有者用户ID
+  lastVisitedAt DateTime? @map("last_visited_at")      // 最后访问时间
+  createdAt DateTime @default(now()) @map("created_at")// 创建时间
+  updatedAt DateTime @updatedAt @map("updated_at")    // 更新时间
 
   // 关系
   owner       User               @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
@@ -52,11 +52,11 @@ model Workspace {
 
 // 工作空间成员
 model WorkspaceMember {
-  id         String     @id @default(uuid())
-  workspaceId String    @map("workspace_id")
-  userId     String     @map("user_id")
-  role       MemberRole @default(MEMBER)
-  joinedAt   DateTime   @default(now()) @map("joined_at")
+  id         String     @id @default(uuid())           // 成员关系ID
+  workspaceId String    @map("workspace_id") @db.VarChar(36)  // 工作空间ID
+  userId     String     @map("user_id") @db.VarChar(36)// 用户ID
+  role       MemberRole @default(MEMBER)              // 成员角色
+  joinedAt   DateTime   @default(now()) @map("joined_at")  // 加入时间
 
   // 关系
   workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -68,27 +68,28 @@ model WorkspaceMember {
   @@index([userId])
 }
 
+// 成员角色枚举
 enum MemberRole {
-  OWNER
-  ADMIN
-  MEMBER
-  VIEWER
+  OWNER    // 所有者
+  ADMIN    // 管理员
+  MEMBER   // 普通成员
+  VIEWER   // 访客
 }
 
 // 需求模型
 model Requirement {
-  id          String              @id @default(uuid())
-  workspaceId String              @map("workspace_id")
-  title       String              @db.VarChar(500)
-  description String?             @db.Text
-  status      RequirementStatus   @default(BACKLOG)
-  priority    RequirementPriority @default(MEDIUM)
-  order       Int                 @default(0) @map("sort_order")
-  assigneeId  String?             @map("assignee_id")
-  dueDate     DateTime?           @map("due_date")
-  createdById String              @map("created_by_id")
-  createdAt   DateTime            @default(now()) @map("created_at")
-  updatedAt   DateTime            @updatedAt @map("updated_at")
+  id          String              @id @default(uuid())// 需求ID
+  workspaceId String              @map("workspace_id") @db.VarChar(36)  // 所属工作空间ID
+  title       String              @db.VarChar(500)      // 需求标题
+  description String?             @db.Text             // 需求描述
+  status      RequirementStatus   @default(BACKLOG)    // 需求状态
+  priority    RequirementPriority @default(MEDIUM)     // 优先级
+  order       Int                 @default(0) @map("sort_order")  // 排序序号
+  assigneeId  String?             @map("assignee_id") @db.VarChar(36)  // 指派人ID（负责人）
+  dueDate     DateTime?           @map("due_date")      // 截止日期
+  createdById String              @map("created_by_id") @db.VarChar(36)  // 创建者ID
+  createdAt   DateTime            @default(now()) @map("created_at")  // 创建时间
+  updatedAt   DateTime            @updatedAt @map("updated_at")      // 更新时间
 
   // 关系
   workspace   Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -104,27 +105,29 @@ model Requirement {
   @@index([workspaceId, status, order])
 }
 
+// 需求状态枚举
 enum RequirementStatus {
-  BACKLOG
-  TODO
-  IN_PROGRESS
-  DONE
+  BACKLOG      // 待办事项
+  TODO         // 待办
+  IN_PROGRESS  // 进行中
+  DONE         // 已完成
 }
 
+// 需求优先级枚举
 enum RequirementPriority {
-  LOW
-  MEDIUM
-  HIGH
-  URGENT
+  LOW      // 低
+  MEDIUM   // 中
+  HIGH     // 高
+  URGENT   // 紧急
 }
 
 // 标签模型
 model Tag {
-  id         String   @id @default(uuid())
-  workspaceId String  @map("workspace_id")
-  name       String   @db.VarChar(50)
-  color      String   @default("#3B82F6") @db.VarChar(7)
-  createdAt  DateTime @default(now()) @map("created_at")
+  id         String   @id @default(uuid())              // 标签ID
+  workspaceId String  @map("workspace_id") @db.VarChar(36)  // 所属工作空间ID
+  name       String   @db.VarChar(50)                   // 标签名称
+  color      String   @default("#3B82F6") @db.VarChar(7)// 标签颜色（十六进制）
+  createdAt  DateTime @default(now()) @map("created_at")// 创建时间
 
   // 关系
   workspace   Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
@@ -135,10 +138,10 @@ model Tag {
   @@index([workspaceId])
 }
 
-// 需求标签关联
+// 需求标签关联（多对多关系）
 model RequirementTag {
-  requirementId String @map("requirement_id")
-  tagId         String @map("tag_id")
+  requirementId String @map("requirement_id") @db.VarChar(36)  // 需求ID
+  tagId         String @map("tag_id") @db.VarChar(36)          // 标签ID
 
   // 关系
   requirement Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
