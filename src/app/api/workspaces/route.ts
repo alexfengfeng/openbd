@@ -46,25 +46,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const where = {
+    const baseWhere = {
       members: {
         some: {
           userId: session.user.id,
         },
       },
+      deletedAt: null,
     } as const;
 
     let workspaces;
     try {
       workspaces = await prisma.workspace.findMany({
-        where,
+        where: baseWhere,
         select: workspaceSelect,
         orderBy: [{ lastVisitedAt: 'desc' }, { updatedAt: 'desc' }],
       });
     } catch (error) {
       if (!isMissingColumnError(error, 'last_visited_at')) throw error;
       workspaces = await prisma.workspace.findMany({
-        where,
+        where: baseWhere,
         select: workspaceSelect,
         orderBy: [{ updatedAt: 'desc' }],
       });

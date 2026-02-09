@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { FolderOpen, Plus, ArrowRight, MoreHorizontal, Pencil } from 'lucide-react';
+import { FolderOpen, Plus, ArrowRight, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { WorkspaceEditDialog } from '@/components/workspaces/WorkspaceEditDialog';
+import { WorkspaceDeleteDialog } from '@/components/workspaces/WorkspaceDeleteDialog';
 
 export default function WorkspacesPage() {
   const router = useRouter();
@@ -20,6 +21,8 @@ export default function WorkspacesPage() {
   const [loading, setLoading] = useState(true);
   const [editingWorkspace, setEditingWorkspace] = useState<{ id: string; name: string } | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deletingWorkspace, setDeletingWorkspace] = useState<{ id: string; name: string } | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchWorkspaces();
@@ -45,6 +48,16 @@ export default function WorkspacesPage() {
   };
 
   const handleEditSuccess = () => {
+    fetchWorkspaces();
+    router.refresh();
+  };
+
+  const handleDeleteWorkspace = (workspace: { id: string; name: string }) => {
+    setDeletingWorkspace(workspace);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteSuccess = () => {
     fetchWorkspaces();
     router.refresh();
   };
@@ -123,6 +136,16 @@ export default function WorkspacesPage() {
                           <Pencil className="h-4 w-4 mr-2" />
                           编辑
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteWorkspace({ id: workspace.id, name: workspace.name });
+                          }}
+                          className="text-red-600 focus:text-red-600 dark:text-red-400"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          删除
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -138,6 +161,13 @@ export default function WorkspacesPage() {
         onOpenChange={setEditDialogOpen}
         workspace={editingWorkspace}
         onSuccess={handleEditSuccess}
+      />
+
+      <WorkspaceDeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        workspace={deletingWorkspace}
+        onSuccess={handleDeleteSuccess}
       />
     </div>
   );

@@ -1,6 +1,8 @@
 'use client';
 
 import { use } from 'react';
+import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
@@ -12,14 +14,24 @@ export default function NewRequirementPage({
   params: Promise<{ workspaceId: string }>;
 }) {
   const { workspaceId } = use(params);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get('from') || 'list';
+  const backUrl = from === 'board' ? `/workspaces/${workspaceId}/board` : `/workspaces/${workspaceId}/requirements`;
+
+  const handleCreateSuccess = () => {
+    // 创建成功后返回到来源页面
+    router.push(backUrl);
+    router.refresh();
+  };
 
   return (
     <div className="max-w-3xl space-y-6">
       <div className="flex items-center gap-3">
-        <Link href={`/workspaces/${workspaceId}/requirements`}>
+        <Link href={backUrl}>
           <Button variant="ghost" size="sm">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            返回列表
+            返回{from === 'board' ? '看板' : '列表'}
           </Button>
         </Link>
         <div>
@@ -28,7 +40,7 @@ export default function NewRequirementPage({
         </div>
       </div>
 
-      <AIRequirementCreator workspaceId={workspaceId} />
+      <AIRequirementCreator workspaceId={workspaceId} onCreate={handleCreateSuccess} />
     </div>
   );
 }

@@ -238,7 +238,7 @@ export async function PUT(
   }
 }
 
-// DELETE /api/requirements/[id]
+// DELETE /api/requirements/[id] - 软删除需求
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -254,33 +254,40 @@ export async function DELETE(
     // 获取原需求以验证权限
     const existing = await prisma.requirement.findUnique({
       where: { id },
-      select: { id: true, workspaceId: true },
+      select: { id: true, workspaceId: true, createdById: true },
     });
 
     if (!existing) {
       return NextResponse.json({ error: 'Requirement not found' }, { status: 404 });
     }
 
-    // 验证权限（只有所有者和管理员可以删除）
-    const member = await prisma.workspaceMember.findFirst({
-      where: {
-        workspaceId: existing.workspaceId,
-        userId: session.user.id,
-        role: {
-          in: ['OWNER', 'ADMIN'],
-        },
-      },
-    });
+    // 检查权限：创建者可以删除自己的需求
+    const isCreator = existing.createdById === session.user.id;
 
-    if (!member) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (!isCreator) {
+      // 如果不是创建者，检查是否是管理员或所有者
+      const member = await prisma.workspaceMember.findFirst({
+        where: {
+          workspaceId: existing.workspaceId,
+          userId: session.user.id,
+          role: {
+            in: ['OWNER', 'ADMIN'],
+          },
+        },
+      });
+
+      if (!member) {
+        return NextResponse.json({ error: '只有管理员和创建者可以删除需求' }, { status: 403 });
+      }
     }
 
-    await prisma.requirement.delete({
+    // 执行软删除
+    await prisma.requirement.update({
       where: { id },
+      data: { deletedAt: new Date() },
     });
 
-    return NextResponse.json({ message: '需求已删除' });
+    return NextResponse.json({ message: '需求已删除', requirementId: id });
   } catch (error) {
     console.error('Error deleting requirement:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

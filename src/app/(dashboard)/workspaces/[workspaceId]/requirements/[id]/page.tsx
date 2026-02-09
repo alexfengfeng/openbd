@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +15,11 @@ export default function RequirementDetailPage({
   params: Promise<{ workspaceId: string; id: string }>;
 }) {
   const { workspaceId, id } = use(params);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const from = searchParams.get('from') || 'list'; // 默认从列表来
+  const backUrl = from === 'board' ? `/workspaces/${workspaceId}/board` : `/workspaces/${workspaceId}/requirements`;
+
   const [requirement, setRequirement] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -49,10 +55,10 @@ export default function RequirementDetailPage({
   if (!requirement) {
     return (
       <div className="space-y-4">
-        <Link href={`/workspaces/${workspaceId}/requirements`}>
+        <Link href={backUrl}>
           <Button variant="ghost" size="sm">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            返回列表
+            返回{from === 'board' ? '看板' : '列表'}
           </Button>
         </Link>
         <Card>
@@ -67,10 +73,10 @@ export default function RequirementDetailPage({
   return (
     <div className="space-y-6 max-w-4xl">
       <div className="flex items-center gap-3">
-        <Link href={`/workspaces/${workspaceId}/requirements`}>
+        <Link href={backUrl}>
           <Button variant="ghost" size="sm">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            返回列表
+            返回{from === 'board' ? '看板' : '列表'}
           </Button>
         </Link>
         <div className="min-w-0">

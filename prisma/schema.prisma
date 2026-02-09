@@ -35,6 +35,7 @@ model Workspace {
   slug      String   @unique @db.VarChar(100)          // URL友好标识符
   ownerId   String   @map("owner_id") @db.VarChar(36)  // 所有者用户ID
   lastVisitedAt DateTime? @map("last_visited_at")      // 最后访问时间
+  deletedAt DateTime? @map("deleted_at")               // 软删除时间戳
   createdAt DateTime @default(now()) @map("created_at")// 创建时间
   updatedAt DateTime @updatedAt @map("updated_at")    // 更新时间
 
@@ -48,6 +49,7 @@ model Workspace {
   @@index([ownerId])
   @@index([slug])
   @@index([lastVisitedAt])
+  @@index([deletedAt])
 }
 
 // 工作空间成员
@@ -88,6 +90,7 @@ model Requirement {
   assigneeId  String?             @map("assignee_id") @db.VarChar(36)  // 指派人ID（负责人）
   dueDate     DateTime?           @map("due_date")      // 截止日期
   createdById String              @map("created_by_id") @db.VarChar(36)  // 创建者ID
+  deletedAt   DateTime?           @map("deleted_at")   // 软删除时间戳
   createdAt   DateTime            @default(now()) @map("created_at")  // 创建时间
   updatedAt   DateTime            @updatedAt @map("updated_at")      // 更新时间
 
@@ -103,6 +106,7 @@ model Requirement {
   @@index([priority])
   @@index([assigneeId])
   @@index([workspaceId, status, order])
+  @@index([deletedAt])
 }
 
 // 需求状态枚举

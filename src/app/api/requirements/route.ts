@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 构建查询条件
-    const where: any = { workspaceId };
+    const where: any = { workspaceId, deletedAt: null };
     if (status) where.status = status;
     if (priority) where.priority = priority;
     if (assigneeId) where.assigneeId = assigneeId;

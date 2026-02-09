@@ -4,19 +4,28 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { getPriorityColor, getPriorityLabel, getStatusColor, getStatusLabel, formatDate } from '@/lib/utils';
-import { Clock, Pencil, User } from 'lucide-react';
+import { Clock, Pencil, User, MoreHorizontal, Trash2 } from 'lucide-react';
 import { QuickEditDialog } from './QuickEditDialog';
+import { RequirementDeleteDialog } from './RequirementDeleteDialog';
 
 interface RequirementCardProps {
   requirement: any;
   onClick?: () => void;
   showActions?: boolean;
   onUpdated?: (requirement: any) => void;
+  onDeleted?: () => void;
 }
 
-export function RequirementCard({ requirement, onClick, showActions = true, onUpdated }: RequirementCardProps) {
+export function RequirementCard({ requirement, onClick, showActions = true, onUpdated, onDeleted }: RequirementCardProps) {
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const handleSave = async (data: { title: string; description: string; status: string; priority: string }) => {
     const response = await fetch(`/api/requirements/${requirement.id}`, {
@@ -44,6 +53,11 @@ export function RequirementCard({ requirement, onClick, showActions = true, onUp
     return typeof json?.title === 'string' ? json.title : '';
   };
 
+  const handleDeleted = () => {
+    setDeleteOpen(false);
+    onDeleted?.();
+  };
+
   return (
     <>
       <Card className={`cursor-pointer ${onClick ? 'cursor-pointer' : ''}`} onClick={onClick}>
@@ -51,18 +65,39 @@ export function RequirementCard({ requirement, onClick, showActions = true, onUp
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold line-clamp-2">{requirement.title}</h3>
           {showActions && (
-            <Button
-              variant="ghost"
-              size="icon"
-              data-quick-edit-button="true"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setEditOpen(true);
-              }}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.preventDefault()}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setEditOpen(true);
+                  }}
+                >
+                  <Pencil className="h-4 w-4 mr-2" />
+                  编辑
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDeleteOpen(true);
+                  }}
+                  className="text-red-600 focus:text-red-600 dark:text-red-400"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  删除
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
         {requirement.description && (
@@ -122,6 +157,12 @@ export function RequirementCard({ requirement, onClick, showActions = true, onUp
         onOpenChange={setEditOpen}
         onSave={handleSave}
         onAiTitle={handleAiTitle}
+      />
+      <RequirementDeleteDialog
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        requirement={requirement}
+        onSuccess={handleDeleted}
       />
     </>
   );

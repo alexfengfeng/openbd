@@ -164,7 +164,7 @@ export function DraggableBoard(props: { workspaceId: string }) {
                     <DraggableRequirementCard
                       key={r.id}
                       requirement={r}
-                      onClick={() => router.push(`/workspaces/${props.workspaceId}/requirements/${r.id}`)}
+                      onClick={() => router.push(`/workspaces/${props.workspaceId}/requirements/${r.id}?from=board`)}
                       onUpdated={handleUpdated}
                     />
                   ))}

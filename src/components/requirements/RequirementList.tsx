@@ -121,7 +121,7 @@ export function RequirementList({ workspaceId }: RequirementListProps) {
           </Select>
         </div>
 
-        <Button onClick={() => router.push(`/workspaces/${workspaceId}/requirements/new`)}>
+        <Button onClick={() => router.push(`/workspaces/${workspaceId}/requirements/new?from=list`)}>
           <Plus className="h-4 w-4 mr-2" />
           新建需求
         </Button>
@@ -149,7 +149,7 @@ export function RequirementList({ workspaceId }: RequirementListProps) {
               <RequirementCard
                 key={requirement.id}
                 requirement={requirement}
-                onClick={() => router.push(`/workspaces/${workspaceId}/requirements/${requirement.id}`)}
+                onClick={() => router.push(`/workspaces/${workspaceId}/requirements/${requirement.id}?from=list`)}
                 onUpdated={(updated) => {
                   setRequirements((prev) => prev.map((r) => (r.id === updated.id ? { ...r, ...updated } : r)));
                 }}
