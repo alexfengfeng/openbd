@@ -18,14 +18,24 @@ export class DeepSeekClient {
     })
   }
 
-  async parseRequirement(prompt: string): Promise<ParsedRequirement> {
+  async parseRequirement(prompt: string, tagTemplatePrompt?: string): Promise<ParsedRequirement> {
+    let systemPrompt = '你是需求分析助手。把用户输入解析为 JSON 对象：{"title":"不超过50字","description":"详细描述","priority":"URGENT/HIGH/MEDIUM/LOW","status":"BACKLOG/TODO/IN_PROGRESS","tags":["标签1","标签2"]}。只返回 JSON。';
+
+    if (tagTemplatePrompt) {
+      systemPrompt = `你是需求分析助手。把用户输入解析为 JSON 对象：{"title":"不超过50字","description":"详细描述","priority":"URGENT/HIGH/MEDIUM/LOW","status":"BACKLOG/TODO/IN_PROGRESS","tags":["标签1","标签2"]}。
+
+标签识别参考以下模板：
+${tagTemplatePrompt}
+
+请严格按照模板的判断标准来识别标签。只返回 JSON。`;
+    }
+
     const completion = await this.client.chat.completions.create({
       model: "deepseek-chat",
       messages: [
         {
           role: "system",
-          content:
-            '你是需求分析助手。把用户输入解析为 JSON 对象：{"title":"不超过50字","description":"详细描述","priority":"URGENT/HIGH/MEDIUM/LOW","status":"BACKLOG/TODO/IN_PROGRESS","tags":["标签1","标签2"]}。只返回 JSON。',
+          content: systemPrompt,
         },
         { role: "user", content: prompt },
       ],

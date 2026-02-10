@@ -3,6 +3,7 @@ import { getServerSession } from '@/lib/auth';
 import { rateLimit } from '@/lib/rateLimit';
 import { aiCacheGet, aiCacheSet } from '@/lib/ai/cache';
 import { DeepSeekClient, type ParsedRequirement } from '@/lib/ai/deepseek-client';
+import { prisma } from '@/lib/prisma';
 import { createHash } from 'crypto';
 
 // POST /api/ai/parse-requirement
@@ -14,10 +15,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { prompt } = await request.json();
+    const { prompt, tagTemplateId } = await request.json();
 
     if (typeof prompt !== 'string' || prompt.trim().length === 0 || prompt.length > 5000) {
       return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
+    }
+
+    const workspaceId = tagTemplateId
+      ? await prisma.tagTemplate.findUnique({
+          where: { id: tagTemplateId },
+          select: { workspaceId: true },
+        }).then(t => t?.workspaceId || null)
+      : null;
+
+    // 验证标签模板权限
+    if (tagTemplateId && workspaceId) {
+      const member = await prisma.workspaceMember.findFirst({
+        where: {
+          workspaceId,
+          userId: session.user.id,
+        },
+      });
+      if (!member) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
 
     const rl = rateLimit({
@@ -49,7 +70,17 @@ export async function POST(request: NextRequest) {
     const client = new DeepSeekClient(apiKey);
     let parsed: ParsedRequirement;
     try {
-      parsed = await client.parseRequirement(normalized);
+      // 如果选择了标签模板，获取模板内容
+      let tagTemplatePrompt: string | undefined;
+      if (tagTemplateId) {
+        const template = await prisma.tagTemplate.findUnique({
+          where: { id: tagTemplateId },
+          select: { prompt: true },
+        });
+        tagTemplatePrompt = template?.prompt;
+      }
+
+      parsed = await client.parseRequirement(normalized, tagTemplatePrompt);
     } catch {
       const fallback = parseRequirementPrompt(normalized);
       aiCacheSet(cacheKey, fallback, 30 * 60_000);

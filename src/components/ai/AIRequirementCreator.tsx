@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/select';
 import { Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
 import { getPriorityLabel, getStatusLabel } from '@/lib/utils';
-import { requirementTemplates } from '@/lib/templates/requirement-templates';
 import { VoiceInput } from '@/components/requirements/VoiceInput';
 
 interface AIRequirementCreatorProps {
@@ -30,7 +29,25 @@ export function AIRequirementCreator({ workspaceId, onCreate }: AIRequirementCre
   const [parsing, setParsing] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [templateId, setTemplateId] = useState<string>('NONE');
+  const [tagTemplateId, setTagTemplateId] = useState<string>('NONE');
+  const [tagTemplates, setTagTemplates] = useState<any[]>([]);
+
+  // 加载标签模板
+  useEffect(() => {
+    fetchTagTemplates();
+  }, [workspaceId]);
+
+  const fetchTagTemplates = async () => {
+    try {
+      const response = await fetch(`/api/tag-templates?workspaceId=${workspaceId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setTagTemplates(data.templates || []);
+      }
+    } catch (error) {
+      console.error('Error fetching tag templates:', error);
+    }
+  };
 
   const handleParse = async () => {
     if (!prompt.trim()) return;
@@ -41,7 +58,10 @@ export function AIRequirementCreator({ workspaceId, onCreate }: AIRequirementCre
       const response = await fetch('/api/ai/parse-requirement', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({
+          prompt,
+          tagTemplateId: tagTemplateId !== 'NONE' ? tagTemplateId : undefined,
+        }),
       });
 
       if (response.ok) {
@@ -104,10 +124,10 @@ export function AIRequirementCreator({ workspaceId, onCreate }: AIRequirementCre
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-yellow-500" />
-          AI 智能创建
+          AI 智能创建需求
         </CardTitle>
         <CardDescription>
-          用自然语言描述你的需求，AI 会帮你自动解析
+          选择 AI 标签模板快速填写，或手动输入需求描述
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -118,21 +138,21 @@ export function AIRequirementCreator({ workspaceId, onCreate }: AIRequirementCre
         ) : null}
         {!parsed ? (
           <>
-            <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center justify-between mb-3">
               <Select
-                value={templateId}
+                value={tagTemplateId}
                 onValueChange={(value) => {
-                  setTemplateId(value);
-                  const tpl = requirementTemplates.find((t) => t.id === value);
+                  setTagTemplateId(value);
+                  const tpl = tagTemplates.find((t) => t.id === value);
                   if (tpl) setPrompt(tpl.prompt);
                 }}
               >
-                <SelectTrigger className="w-56">
+                <SelectTrigger className="w-48">
                   <SelectValue placeholder="选择模板..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="NONE">不使用模板</SelectItem>
-                  {requirementTemplates.map((t) => (
+                  <SelectItem value="NONE">手动输入</SelectItem>
+                  {tagTemplates.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.name}
                     </SelectItem>
@@ -154,7 +174,11 @@ export function AIRequirementCreator({ workspaceId, onCreate }: AIRequirementCre
             />
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">
-                提示：使用 #标签 可以添加标签，按 Ctrl+Enter 快速解析
+                {tagTemplateId !== 'NONE' ? (
+                  <>✨ 已选择 "{tagTemplates.find(t => t.id === tagTemplateId)?.name || ''}" 模板</>
+                ) : (
+                  <>提示：选择模板可快速填充，AI 将按模板标准识别标签</>
+                )}
               </span>
               <Button
                 onClick={handleParse}
