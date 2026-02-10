@@ -25,6 +25,14 @@ pnpm db:studio    # 打开 Prisma Studio 管理界面
 node scripts/init-db.js  # 重新创建数据库（开发环境专用）
 ```
 
+### 测试
+```bash
+pnpm test           # 运行单元测试（交互模式）
+pnpm test:unit      # 运行单元测试（单次）
+pnpm test:coverage  # 生成覆盖率报告（覆盖率门槛：80% 行/函数/语句，70% 分支）
+pnpm test:e2e       # 运行 E2E 测试（Playwright）
+```
+
 ## 架构设计
 
 ### 技术栈
@@ -78,11 +86,12 @@ src/
 
 核心实体（位于 `prisma/schema.prisma`）：
 - **User**: 用户（username, passwordHash）
-- **Workspace**: 工作空间（name, slug, ownerId）
+- **Workspace**: 工作空间（name, slug, ownerId, deletedAt 支持软删除）
 - **WorkspaceMember**: 工作空间成员（workspaceId, userId, role）
-- **Requirement**: 需求（workspaceId, title, status, priority, assigneeId）
+- **Requirement**: 需求（workspaceId, title, status, priority, assigneeId, deletedAt 支持软删除）
 - **Tag**: 标签（workspaceId, name, color）
 - **RequirementTag**: 需求-标签多对多关联
+- **TagTemplate**: AI 标签模板（workspaceId, name, prompt），用于 AI 解析需求时识别标签
 
 枚举类型：
 - `MemberRole`: OWNER, ADMIN, MEMBER, VIEWER
@@ -103,6 +112,11 @@ DATABASE_URL="mysql://USER:PASSWORD@HOST:3306/fast_json"
 JWT_SECRET="至少32字符的随机密钥"
 ```
 
+可选的环境变量：
+```env
+DEEPSEEK_API_KEY="sk-..."  # AI 解析功能的 DeepSeek API Key，未配置时自动降级到本地规则解析
+```
+
 ## UI 组件
 
 - 基于 **shadcn/ui** + **Radix UI** + **TailwindCSS**
@@ -119,6 +133,26 @@ JWT_SECRET="至少32字符的随机密钥"
 5. **用户会话**: 在服务端组件中使用 `getServerSession()` 获取当前用户
 6. **API 路由**: 从请求头获取 `x-user-id` 而非从 cookie（中间件已注入）
 7. **Prisma Client 生成**: 若出现 `@prisma/client did not initialize yet`，先执行 `pnpm db:generate`（建议使用 `pnpm dev` 启动）
+8. **软删除**: Workspace 和 Requirement 支持软删除（deletedAt），查询时需使用 `where: { deletedAt: null }` 过滤
+9. **AI 降级**: DeepSeek API 调用失败时，AI 解析功能会自动降级到本地规则解析
+
+## 架构要点
+
+### AI 需求解析流程
+- 客户端：`src/components/ai/AIRequirementCreator.tsx`
+- API：`src/app/api/ai/parse-requirement/route.ts`
+- 核心逻辑：`src/lib/ai/deepseek-client.ts`（DeepSeek API）、`src/lib/ai/local-parser.ts`（本地降级）
+- 标签模板：`src/lib/templates/requirement-templates.ts` 提供需求录入模板
+
+### 拖拽排序
+- 使用 `@dnd-kit` 库实现看板拖拽
+- 核心逻辑：`src/components/requirements/dragLogic.ts`
+- API：`src/app/api/requirements/reorder/route.ts` 批量更新状态与排序
+
+### 测试策略
+- **单元测试**：Vitest + jsdom，覆盖率门槛 80%
+- **E2E 测试**：Playwright，测试目录 `e2e/`
+- **测试配置**：`vitest.config.ts` 和 `playwright.config.ts`
 
 ## 测试账号
 
