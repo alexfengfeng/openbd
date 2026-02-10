@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { AIDescriptionOptimizer } from "@/components/ai/AIDescriptionOptimizer"
 
 export function QuickEditDialog(props: {
   requirement: any
@@ -21,6 +22,7 @@ export function QuickEditDialog(props: {
   onOpenChange: (open: boolean) => void
   onSave: (data: { title: string; description: string; status: string; priority: string }) => Promise<void>
   onAiTitle?: (description: string) => Promise<string>
+  workspaceId?: string
 }) {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -93,6 +95,17 @@ export function QuickEditDialog(props: {
               placeholder="详细描述..."
               rows={6}
             />
+            {/* AI 描述优化器 */}
+            {props.workspaceId && (
+              <AIDescriptionOptimizer
+                description={description}
+                workspaceId={props.workspaceId}
+                onOptimized={(optimized) => setDescription(optimized)}
+                disabled={saving}
+                buttonText="AI 优化描述"
+                size="sm"
+              />
+            )}
           </div>
 
           <div className="flex gap-4">

@@ -16,6 +16,7 @@ import {
 import { Loader2, Sparkles, CheckCircle2 } from 'lucide-react';
 import { getPriorityLabel, getStatusLabel } from '@/lib/utils';
 import { VoiceInput } from '@/components/requirements/VoiceInput';
+import { AIDescriptionOptimizer } from '@/components/ai/AIDescriptionOptimizer';
 
 interface AIRequirementCreatorProps {
   workspaceId: string;
@@ -172,6 +173,16 @@ export function AIRequirementCreator({ workspaceId, onCreate }: AIRequirementCre
                 }
               }}
             />
+            {/* AI 描述优化器 */}
+            <div className="border-t pt-3">
+              <AIDescriptionOptimizer
+                description={prompt}
+                workspaceId={workspaceId}
+                onOptimized={(optimized) => setPrompt(optimized)}
+                disabled={parsing}
+                buttonText="AI 优化描述"
+              />
+            </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">
                 {tagTemplateId !== 'NONE' ? (

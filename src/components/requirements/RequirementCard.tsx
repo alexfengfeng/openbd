@@ -157,6 +157,7 @@ export function RequirementCard({ requirement, onClick, showActions = true, onUp
         onOpenChange={setEditOpen}
         onSave={handleSave}
         onAiTitle={handleAiTitle}
+        workspaceId={requirement.workspaceId}
       />
       <RequirementDeleteDialog
         open={deleteOpen}
